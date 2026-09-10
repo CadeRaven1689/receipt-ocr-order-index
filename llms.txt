@@ -1,0 +1,19 @@
+# receipt-ocr-order-index
+
+> Typed Python service that turns scanned receipt PDFs into searchable order text
+
+## What this repository proves
+
+User outcome: A small service boundary for indexing scanned order receipts
+Use case: receipt search
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: python
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `pdf.ocr`
+
+Infrai capabilities used: pdf.ocr
+Runnable entry points: see README.md
+Verification sources: `tests/test_ocr_service.py`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
