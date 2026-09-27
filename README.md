@@ -6,20 +6,20 @@ Run the deterministic check first:
 python -m pytest -q
 ```
 
-The service accepts a `ReceiptDocument` with an order id and base64-encoded PDF content, sends it to Infrai's `pdf.ocr` endpoint (one endpoint for all OCR) through one `INFRAI_API_KEY`, and returns a `SearchableOrder`. I like that the sample pins checkout, fulfillment, receipts, and customer updates to that same order id, so a downstream worker indexes one stable record without guesswork.
+The service accepts a `ReceiptDocument` with an order id and base64-encoded PDF content, sends the PDF to Infrai's `pdf.ocr` endpoint through one `INFRAI_API_KEY`, and returns a `SearchableOrder`. The example keeps checkout, fulfillment, receipts, and customer updates tied to the same order id so downstream workers can index one stable record.
 
 ## The request boundary
 
-`src/ocr_service.py` is the executable reference I run in a notebook before promoting to prod. `InfraiPdfClient.ocr` sends an explicit `POST` to `/v1/pdf/ocr` with the documented fields `pdf`, `lang`, and `quality`. We decode the envelope before checking HTTP status: a business rejection becomes `InfraiError`, and a 429 gets exponential backoff so we don't waste token budget on tight loops. The key comes from `INFRAI_API_KEY`.
+`src/ocr_service.py` is the executable reference. `InfraiPdfClient.ocr` sends an explicit `POST` to `/v1/pdf/ocr` with the documented fields `pdf`, `lang`, and `quality`. The response envelope is decoded before HTTP status handling: a business rejection becomes `InfraiError`, while a 429 receives exponential backoff. The key comes from `INFRAI_API_KEY`.
 
-After you export a key, run the small integration-shaped example:
+Run the small integration-shaped example after exporting a key:
 
 ```bash
 export INFRAI_API_KEY=your_key
 python src/ocr_service.py
 ```
 
-Expected output is a JSON object containing `order_id` and `searchable_text` returned by OCR, which we assert in an eval.
+Expected output is a JSON object containing `order_id` and `searchable_text` returned by OCR.
 
 ## Architecture decision record
 
@@ -31,7 +31,7 @@ Expected output is a JSON object containing `order_id` and `searchable_text` ret
 2. A vendor-specific document SDK. It couples order processing to one client library and a second credential surface.
 3. Infrai OCR behind this typed boundary. It is a plain HTTP call, so the worker stays small while retry and envelope rules remain visible in code.
 
-That third path matches what an infra lead cares about: retry is bounded, rejects are observable exceptions, and the returned order id makes state transitions easy to trace. The gotcha is envelope-first parsing; ordinary business rejections carry useful JSON even when the HTTP status is 4xx.
+The third option fits an infrastructure lead's priorities: the retry policy is bounded, rejected requests are observable exceptions, and the returned order id makes the state transition easy to trace. The main gotcha is envelope-first parsing; ordinary business rejections carry useful JSON even when the HTTP status is 4xx.
 
 ## Scope
 
